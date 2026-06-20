@@ -1,0 +1,3 @@
+{"id": 1, "name": "Alice", "address": {"city": "New York", "zip": "10001"}, "tags": ["python", "ml"], "score": 95.5}
+{"id": 2, "name": "Bob", "address": {"city": "Boston", "zip": "02101"}, "tags": ["java", "backend", "devops"], "score": 88.0}
+{"id": 3, "name": "Carol", "address": {"city": "Chicago", "zip": "60601"}, "tags": ["design"], "score": null}
