@@ -349,7 +349,7 @@ from e2b_code_interpreter import Sandbox
 anthropic = Anthropic()
 
 response = anthropic.messages.create(
-    model="claude-3-5-sonnet-20240620",
+    model="claude-sonnet-4-6",
     max_tokens=1024,
     messages=[
         {"role": "user", "content": "Write Python code to analyze this CSV data and create visualizations"}

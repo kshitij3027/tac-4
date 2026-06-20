@@ -6,7 +6,7 @@ import os
 import io
 from pathlib import Path
 from unittest.mock import patch
-from core.file_processor import convert_csv_to_sqlite, convert_json_to_sqlite
+from core.file_processor import convert_csv_to_sqlite, convert_json_to_sqlite, convert_jsonl_to_sqlite
 
 
 @pytest.fixture
@@ -157,8 +157,75 @@ class TestFileProcessor:
         # Test with empty JSON array
         json_data = b'[]'
         table_name = "test_table"
-        
+
         with pytest.raises(Exception) as exc_info:
             convert_json_to_sqlite(json_data, table_name)
-        
+
         assert "JSON array is empty" in str(exc_info.value)
+
+    def test_convert_jsonl_to_sqlite_flat_success(self, test_db, test_assets_dir):
+        jsonl_file = test_assets_dir / "test_events.jsonl"
+        with open(jsonl_file, 'rb') as f:
+            jsonl_data = f.read()
+
+        result = convert_jsonl_to_sqlite(jsonl_data, "events")
+
+        assert result['row_count'] == 4
+        assert 'id' in result['schema']
+        assert 'event' in result['schema']
+        assert 'user_id' in result['schema']
+        assert 'timestamp' in result['schema']
+
+        login_row = next((r for r in result['sample_data'] if r['event'] == 'login'), None)
+        assert login_row is not None
+        assert login_row['user_id'] == 101
+
+    def test_convert_jsonl_to_sqlite_nested_fields(self, test_db, test_assets_dir):
+        jsonl_file = test_assets_dir / "test_nested.jsonl"
+        with open(jsonl_file, 'rb') as f:
+            jsonl_data = f.read()
+
+        result = convert_jsonl_to_sqlite(jsonl_data, "nested")
+
+        assert 'address__city' in result['schema']
+        assert 'address__zip' in result['schema']
+        assert 'tags__0' in result['schema']
+        assert 'tags__1' in result['schema']
+        assert 'tags__2' in result['schema']
+
+        alice_row = next((r for r in result['sample_data'] if r['name'] == 'Alice'), None)
+        assert alice_row is not None
+        assert alice_row['address__city'] == 'New York'
+        assert alice_row['tags__0'] == 'python'
+
+        bob_row = next((r for r in result['sample_data'] if r['name'] == 'Bob'), None)
+        assert bob_row is not None
+        assert bob_row['tags__2'] == 'devops'
+
+        carol_row = next((r for r in result['sample_data'] if r['name'] == 'Carol'), None)
+        assert carol_row is not None
+        assert carol_row['tags__2'] is None
+
+    def test_convert_jsonl_to_sqlite_sparse_keys(self, test_db):
+        jsonl_data = b'{"id": 1, "name": "Alice", "score": 95}\n{"id": 2, "name": "Bob"}\n'
+
+        result = convert_jsonl_to_sqlite(jsonl_data, "sparse")
+
+        assert result['row_count'] == 2
+        bob_row = next((r for r in result['sample_data'] if r['name'] == 'Bob'), None)
+        assert bob_row is not None
+        assert bob_row['score'] is None
+
+    def test_convert_jsonl_to_sqlite_empty(self, test_db):
+        with pytest.raises(Exception) as exc_info:
+            convert_jsonl_to_sqlite(b"", "empty_table")
+
+        assert "Error converting JSONL to SQLite" in str(exc_info.value)
+
+    def test_convert_jsonl_to_sqlite_invalid_line(self, test_db):
+        jsonl_data = b'{"id": 1, "name": "Alice"}\nnot valid json\n'
+
+        with pytest.raises(Exception) as exc_info:
+            convert_jsonl_to_sqlite(jsonl_data, "invalid_table")
+
+        assert "Error converting JSONL to SQLite" in str(exc_info.value)

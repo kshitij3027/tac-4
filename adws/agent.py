@@ -175,6 +175,17 @@ def prompt_claude_code(request: AgentPromptRequest) -> AgentPromptResponse:
     cmd.extend(["--output-format", "stream-json"])
     cmd.append("--verbose")
 
+    # Deny tools if requested. Stripping mutating/research tools keeps a step
+    # (e.g. issue classification) from "helpfully" doing the work instead of
+    # just answering. Comma-joined into a single arg so this variadic flag can't
+    # swallow the flags that follow; unknown tool names are harmless no-ops.
+    if request.disallowed_tools:
+        cmd.extend(["--disallowed-tools", ",".join(request.disallowed_tools)])
+
+    # Cap API spend as a runaway safety bound (the CLI's old --max-turns is gone).
+    if request.max_budget_usd is not None:
+        cmd.extend(["--max-budget-usd", str(request.max_budget_usd)])
+
     # Add dangerous skip permissions flag if enabled
     if request.dangerously_skip_permissions:
         cmd.append("--dangerously-skip-permissions")
@@ -256,6 +267,8 @@ def execute_template(request: AgentTemplateRequest) -> AgentPromptResponse:
         model=request.model,
         dangerously_skip_permissions=True,
         output_file=output_file,
+        disallowed_tools=request.disallowed_tools,
+        max_budget_usd=request.max_budget_usd,
     )
 
     # Execute and return response (prompt_claude_code now handles all parsing)

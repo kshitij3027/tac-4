@@ -119,7 +119,7 @@ class TestLLMProcessor:
             
             # Verify the API call parameters
             call_args = mock_client.messages.create.call_args
-            assert call_args[1]['model'] == 'claude-3-haiku-20240307'
+            assert call_args[1]['model'] == 'claude-haiku-4-5-20251001'
             assert call_args[1]['temperature'] == 0.1
             assert call_args[1]['max_tokens'] == 500
     
