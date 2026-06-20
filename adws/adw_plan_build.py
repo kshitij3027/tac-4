@@ -122,6 +122,15 @@ def classify_issue(
         args=[issue.model_dump_json(indent=2, by_alias=True)],
         adw_id=adw_id,
         model="sonnet",
+        # Classification must ONLY emit a command token. Deny mutating/research
+        # tools so the agent can't run off and do the work (e.g. write a spec),
+        # and cap spend as a runaway bound. Unknown tool names are no-ops.
+        disallowed_tools=[
+            "Bash", "Edit", "Write", "MultiEdit", "NotebookEdit",
+            "Read", "Grep", "Glob", "Task", "Agent", "Workflow",
+            "WebFetch", "WebSearch",
+        ],
+        max_budget_usd=0.50,
     )
 
     logger.debug(

@@ -109,6 +109,9 @@ class AgentPromptRequest(BaseModel):
     model: Literal["sonnet", "opus"] = "opus"
     dangerously_skip_permissions: bool = False
     output_file: str
+    # Optional guardrails (e.g. for a classification step that must only emit text):
+    disallowed_tools: Optional[List[str]] = None  # tool names to deny, e.g. ["Bash", "Write"]
+    max_budget_usd: Optional[float] = None  # halt the run once API spend exceeds this
 
 
 class AgentPromptResponse(BaseModel):
@@ -127,6 +130,9 @@ class AgentTemplateRequest(BaseModel):
     args: List[str]
     adw_id: str
     model: Literal["sonnet", "opus"] = "sonnet"
+    # Optional guardrails passed through to the underlying agent invocation:
+    disallowed_tools: Optional[List[str]] = None
+    max_budget_usd: Optional[float] = None
 
 
 class ClaudeCodeResultMessage(BaseModel):
